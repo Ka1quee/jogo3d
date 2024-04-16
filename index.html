@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Carrega o GLTFLoader diretamente do arquivo baixado -->
+    <script src="GLTFLoader.js"></script>
+    <script>
+        let keydown = [];
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Cor do céu
+    
+        // Criação da luz ambiente
+        var ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Luz ambiente branca com intensidade 0.5
+        scene.add(ambientLight);
+    
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer();
+    
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+    
+        // Geometria e material do chão
+        var groundGeometry = new THREE.PlaneGeometry(100, 100); // Largura e comprimento do chão
+        var groundMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22 }); // Cor do chão
+        var ground = new THREE.Mesh(groundGeometry, groundMaterial); // Cria o chão
+        ground.rotation.x = -Math.PI / 2; // Rotaciona o chão para que fique plano
+        scene.add(ground); // Adiciona o chão à cena
+    
+        // Ajustando a posição do chão para que fique visível
+        ground.position.y = -0.5; // Posição do chão abaixo do plano XY
+    
+        // Ajustando a posição do personagem e do cubo para que fiquem em cima do chão
+        var characterHeight = 1.5; // Altura do personagem
+        var characterPosition = characterHeight / 2; // Metade da altura do personagem
+        camera.position.y = characterPosition; // Posiciona a câmera na altura do personagem
+    
+        var cubeGeometry = new THREE.BoxGeometry(10, 1, 10); // Largura, altura, comprimento
+        var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Cor vermelha
+        var referenceCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        referenceCube.position.set(5, characterPosition, 0); // Posiciona o cubo ao lado do chão
+        scene.add(referenceCube); // Adiciona o cubo à cena
+    
+        // Carrega o modelo GLTF da casa
+        var loader = new THREE.GLTFLoader();
+        loader.load(
+            'cidade.glb',
+            function (gltf) {
+                // Adiciona o modelo à cena
+                var cidade = gltf.scene;
+    
+                // Ajusta a posição y do modelo para a mesma altura do chão
+                cidade.position.y = ground.position.y;
+    
+                // Posiciona o modelo ao lado do chão
+                cidade.position.x = -3;
+                cidade.position.z = 0;
+    
+                scene.add(cidade);
+            },
+            undefined,
+            function (error) {
+                console.error('Erro ao carregar o modelo GLTF', error);
+            }
+        );
+
+        var loader = new THREE.GLTFLoader();
+        loader.load(
+            'sky.glb',
+            function (gltf) {
+                // Adiciona o modelo à cena
+                var sky = gltf.scene;
+    
+                // Ajusta a posição y do modelo para a mesma altura do chão
+                sky.position.y = ground.position.y;
+    
+                // Posiciona o modelo ao lado do chão
+                sky.position.x = -3;
+                sky.position.z = 0;
+    
+                scene.add(sky);
+            },
+            undefined,
+            function (error) {
+                console.error('Erro ao carregar o modelo GLTF', error);
+            }
+        );
+    
+        // Função para travar o cursor no centro da tela
+        document.addEventListener('click', function() {
+            renderer.domElement.requestPointerLock();
+        });
+    
+        // Função para lidar com o evento de mudança de travamento do cursor
+        document.addEventListener('pointerlockchange', lockChangeAlert, false);
+    
+        // Função para lidar com o movimento do mouse enquanto o cursor estiver travado
+        function onMouseMove(event) {
+    camera.rotation.y -= event.movementX * mouseSensitivity;
+
+    // Removido o movimento vertical da câmera
+}
+
+    
+        function lockChangeAlert() {
+            if (document.pointerLockElement === renderer.domElement) {
+                // Cursor travado
+                console.log('Cursor travado');
+            } else {
+                // Cursor não travado
+                console.log('Cursor não travado');
+            }
+        }
+    
+        var mouseSensitivity = 0.002;
+        var moveSpeed = 0.1;
+    
+        document.addEventListener('mousemove', onMouseMove, false);
+        window.addEventListener('resize', onWindowResize, false);
+    
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    
+        window.onkeydown = function (e) {
+            keydown[e.key] = true;
+        };
+    
+        window.onkeyup = function (e) {
+            keydown[e.key] = false;
+        };
+    
+        var animate = function () {
+            requestAnimationFrame(animate);
+    
+            var moveDirection = new THREE.Vector3();
+    
+            if (keydown["w"]) moveDirection.z = -1;
+            if (keydown["s"]) moveDirection.z = 1;
+            if (keydown["d"]) moveDirection.x = 1;
+            if (keydown["a"]) moveDirection.x = -1;
+    
+            moveDirection.y = 0; // Ignora o movimento vertical
+    
+            moveDirection.normalize();
+    
+            var moveVector = moveDirection.clone();
+            moveVector.multiplyScalar(moveSpeed);
+    
+            camera.translateX(moveVector.x);
+            camera.translateZ(moveVector.z);
+    
+            // Restringe a câmera ao plano do chão
+            camera.position.y = characterPosition;
+    
+            renderer.render(scene, camera);
+        };
+    
+        animate();
+    </script>
+    
+</body>
+
+</html>
